@@ -3,7 +3,7 @@ var api = "https://rqrvbffqa8.execute-api.eu-central-1.amazonaws.com/production/
 var map = null;
 
 var initMap = function() {
-  map = L.map('map').setView([61.6741457,23.8184606], 12);
+  map = L.map('map').setView([61.6741457,23.8184606], 11);
 
   L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}', {
     attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="http://mapbox.com">Mapbox</a>',
@@ -42,7 +42,13 @@ var initTrack = function() {
         var polyline = L.polyline(track.path, { color: 'blue'} ).addTo(map);
         var marker = L.marker(track.path[0], { title: track.name, color: 'blue' }).addTo(map);
 
-        marker.bindPopup(`<b>${track.name}</b><p><b>Pituus</b>: ${lengthInKms} km<br><b>Kunto:</b> ${track.condition}<p>`)
+        marker.bindPopup(`<b>${track.name}</b>
+          <p>
+            <b>Pituus</b>: ${lengthInKms} km<br>
+            <b>Tyyli:</b> ${track.style}<br>
+            <b>Vaikeus:</b> ${track.difficulty}
+          </p>
+        `);
       })
     });
 }
