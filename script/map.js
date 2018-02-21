@@ -13,6 +13,36 @@ var initMap = function() {
   }).addTo(map);
 };
 
+var highlightFeature = function(e) {
+    var layer = e.target;
+
+    layer.setStyle({
+        weight: 5,
+        color: 'red',
+        dashArray: '',
+        fillOpacity: 0.7
+    });
+
+    if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
+        layer.bringToFront();
+    }
+}
+
+var resetHighlight = function(e) {
+    var layer = e.target;
+
+    layer.setStyle({
+        weight: 3,
+        color: 'blue',
+        dashArray: '',
+        fillOpacity: 1
+    });
+
+    if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
+        layer.bringToFront();
+    }
+}
+
 var initTrack = function() {
   fetch(api, { mode: 'cors' })
     .then(response => {
@@ -22,6 +52,8 @@ var initTrack = function() {
       throw new Error('API response was not ok.');
     })
     .then(tracks => {
+      const polylines = [];
+
       tracks.forEach(track => {
         var lengthInMeters = track.path.reduce((prev, cur) => {
           if (!prev.end) {
@@ -40,16 +72,30 @@ var initTrack = function() {
         var lengthInKms = parseFloat(lengthInMeters / 1000).toFixed(1);
 
         var polyline = L.polyline(track.path, { color: 'blue'} ).addTo(map);
+        polyline.on('mouseover', highlightFeature);
+        polyline.on('mouseout', resetHighlight);
+
         var marker = L.marker(track.path[0], { title: track.name, color: 'blue' }).addTo(map);
 
-        marker.bindPopup(`<b>${track.name}</b>
+        marker.on('mouseover', (e) => highlightFeature({ target: polyline }));
+        marker.on('mouseout', (e) => resetHighlight({ target: polyline }));
+
+        var popupText = `<b>${track.name}</b>
           <p>
-            <b>Pituus</b>: ${lengthInKms} km<br>
+            <b>Pituus</b>: ${lengthInKms > 0 ? lengthInKms + ' km' : '?'}<br>
             <b>Tyyli:</b> ${track.style}<br>
             <b>Vaikeus:</b> ${track.difficulty}
           </p>
-        `);
-      })
+        `;
+
+        marker.bindPopup(popupText);
+        polyline.bindPopup(popupText);
+
+        polylines.push(polyline);
+      });
+
+      var group = new L.featureGroup(polylines);
+      map.fitBounds(group.getBounds());
     });
 }
 
