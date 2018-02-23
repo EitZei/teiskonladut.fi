@@ -1,11 +1,13 @@
-var api = "https://rqrvbffqa8.execute-api.eu-central-1.amazonaws.com/production/skitracks";
+import Leaflet from 'leaflet';
 
-var map = null;
+const api = "https://rqrvbffqa8.execute-api.eu-central-1.amazonaws.com/production/skitracks";
 
-var initMap = function() {
-  map = L.map('map').setView([61.6741457,23.8184606], 11);
+let map = null;
 
-  L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}', {
+const initMap = () => {
+  map = Leaflet.map('map').setView([61.6741457,23.8184606], 11);
+
+  Leaflet.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}', {
     attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="http://mapbox.com">Mapbox</a>',
     maxZoom: 18,
     id: 'mapbox.streets',
@@ -13,8 +15,8 @@ var initMap = function() {
   }).addTo(map);
 };
 
-var highlightFeature = function(e) {
-    var layer = e.target;
+const highlightFeature = (e) => {
+    const layer = e.target;
 
     layer.setStyle({
         weight: 5,
@@ -23,13 +25,13 @@ var highlightFeature = function(e) {
         fillOpacity: 0.7
     });
 
-    if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
+    if (!Leaflet.Browser.ie && !Leaflet.Browser.opera && !Leaflet.Browser.edge) {
         layer.bringToFront();
     }
 }
 
-var resetHighlight = function(e) {
-    var layer = e.target;
+const resetHighlight = (e) => {
+    const layer = e.target;
 
     layer.setStyle({
         weight: 3,
@@ -38,12 +40,12 @@ var resetHighlight = function(e) {
         fillOpacity: 1
     });
 
-    if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
+    if (!Leaflet.Browser.ie && !Leaflet.Browser.opera && !Leaflet.Browser.edge) {
         layer.bringToFront();
     }
 }
 
-var initTrack = function() {
+const initTrack = () => {
   fetch(api, { mode: 'cors' })
     .then(response => {
       if(response.ok) {
@@ -55,12 +57,12 @@ var initTrack = function() {
       const polylines = [];
 
       tracks.forEach(track => {
-        var lengthInMeters = track.path.reduce((prev, cur) => {
+        const lengthInMeters = track.path.reduce((prev, cur) => {
           if (!prev.end) {
             prev.end = cur;
           } else {
-            const c1 = L.latLng(cur);
-            const c2 = L.latLng(prev.end);
+            const c1 = Leaflet.latLng(cur);
+            const c2 = Leaflet.latLng(prev.end);
 
             prev.end = cur;
             prev.length = prev.length + c1.distanceTo(c2);
@@ -69,18 +71,18 @@ var initTrack = function() {
           return prev;
         }, { length: 0, end: null }).length;
 
-        var lengthInKms = parseFloat(lengthInMeters / 1000).toFixed(1);
+        const lengthInKms = parseFloat(lengthInMeters / 1000).toFixed(1);
 
-        var polyline = L.polyline(track.path, { color: 'blue'} ).addTo(map);
+        const polyline = Leaflet.polyline(track.path, { color: 'blue'} ).addTo(map);
         polyline.on('mouseover', highlightFeature);
         polyline.on('mouseout', resetHighlight);
 
-        var marker = L.marker(track.path[0], { title: track.name, color: 'blue' }).addTo(map);
+        const marker = Leaflet.marker(track.path[0], { title: track.name, color: 'blue' }).addTo(map);
 
         marker.on('mouseover', (e) => highlightFeature({ target: polyline }));
         marker.on('mouseout', (e) => resetHighlight({ target: polyline }));
 
-        var popupText = `<b>${track.name}</b>
+        const popupText = `<b>${track.name}</b>
           <p>
             <b>Pituus</b>: ${lengthInKms > 0 ? lengthInKms + ' km' : '?'}<br>
             <b>Tyyli:</b> ${track.style}<br>
@@ -94,12 +96,12 @@ var initTrack = function() {
         polylines.push(polyline);
       });
 
-      var group = new L.featureGroup(polylines);
+      const group = new Leaflet.featureGroup(polylines);
       map.fitBounds(group.getBounds());
     });
 }
 
-document.addEventListener("DOMContentLoaded", function(event) {
-  initMap();
-  initTrack();
-});
+module.exports = {
+  initMap,
+  initTrack,
+};
