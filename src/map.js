@@ -1,8 +1,16 @@
 import Leaflet from 'leaflet';
+import moment from 'moment';
 
-const api = "https://rqrvbffqa8.execute-api.eu-central-1.amazonaws.com/production/skitracks";
+moment.locale('fi');
+
+const THUMB_UP = String.fromCodePoint('0x1F44D');
+const THUMB_DOWN = String.fromCodePoint('0x1F44E');
+
+//const api = "https://rqrvbffqa8.execute-api.eu-central-1.amazonaws.com/production/skitracks";
+const api = "https://rqrvbffqa8.execute-api.eu-central-1.amazonaws.com/staging/skitracks";
 
 let map = null;
+let featureLayer = null;
 
 const initMap = () => {
   map = Leaflet.map('map').setView([61.6741457,23.8184606], 11);
@@ -45,6 +53,18 @@ const resetHighlight = (e) => {
     }
 }
 
+window.updateCondition = (trackId, condition) =>
+  fetch(`${api}/${trackId}/condition/${condition}`, { method: 'PUT' })
+    .then(response => {
+      if(response.ok) {
+        console.log('Track condition updated successfully', trackId, condition);
+        map.closePopup();
+        initTrack();
+      } else {
+        throw new Error('Track condition update failed');
+      }
+    });
+
 const initTrack = () => {
   fetch(api, { mode: 'cors' })
     .then(response => {
@@ -54,6 +74,7 @@ const initTrack = () => {
       throw new Error('API response was not ok.');
     })
     .then(tracks => {
+      const newFeatureLayer = Leaflet.layerGroup();
       const polylines = [];
 
       tracks.forEach(track => {
@@ -73,22 +94,40 @@ const initTrack = () => {
 
         const lengthInKms = parseFloat(lengthInMeters / 1000).toFixed(1);
 
-        const polyline = Leaflet.polyline(track.path, { color: 'blue'} ).addTo(map);
+        const polyline = Leaflet.polyline(track.path, { color: 'blue'} ).addTo(newFeatureLayer);
         polyline.on('mouseover', highlightFeature);
         polyline.on('mouseout', resetHighlight);
 
-        const marker = Leaflet.marker(track.path[0], { title: track.name, color: 'blue' }).addTo(map);
+        const marker = Leaflet.marker(track.path[0], { title: track.name, color: 'blue' }).addTo(newFeatureLayer);
 
         marker.on('mouseover', (e) => highlightFeature({ target: polyline }));
         marker.on('mouseout', (e) => resetHighlight({ target: polyline }));
 
-        const popupText = `<b>${track.name}</b>
+        let popupText = `<b>${track.name}</b>
           <p>
             <b>Pituus</b>: ${lengthInKms > 0 ? lengthInKms + ' km' : '?'}<br>
             <b>Tyyli:</b> ${track.style}<br>
-            <b>Vaikeus:</b> ${track.difficulty}
-          </p>
-        `;
+            <b>Vaikeus:</b> ${track.difficulty}<br>
+            <b>Kunto:</b> `;
+
+        if (!track.condition.good && !track.condition.bad) {
+          popupText += '?';
+        } else if (track.condition.good && (!track.condition.bad || track.condition.good > track.condition.bad)) {
+          popupText += `${THUMB_UP}${moment(track.condition.good).fromNow()}`;
+        } else if (track.condition.bad && !track.condition.good) {
+          popupText += `${THUMB_DOWN}${moment(track.condition.bad).fromNow()}`;
+        } else if (track.condition.bad && track.condition.good) {
+          popupText += `${THUMB_DOWN}${moment(track.condition.bad).fromNow()} (${THUMB_UP}${moment(track.condition.good).fromNow()})`;
+        }
+
+        popupText += '</p>'
+
+        popupText += `<p>
+          Missä kunnossa latu on?</br>
+
+          <button class="condition" onClick="updateCondition('${track.id}', 'good')">${THUMB_UP}</button>
+          <button class="condition" onClick="updateCondition('${track.id}', 'bad')">${THUMB_DOWN}</button>
+        </p>`;
 
         marker.bindPopup(popupText);
         polyline.bindPopup(popupText);
@@ -96,8 +135,16 @@ const initTrack = () => {
         polylines.push(polyline);
       });
 
-      const group = new Leaflet.featureGroup(polylines);
-      map.fitBounds(group.getBounds());
+      if (featureLayer) {
+        map.removeLayer(featureLayer);
+        featureLayer = null;
+      } else {
+        const group = new Leaflet.featureGroup(polylines);
+        map.fitBounds(group.getBounds());
+      }
+
+      featureLayer = newFeatureLayer;
+      featureLayer.addTo(map);
     });
 }
 
