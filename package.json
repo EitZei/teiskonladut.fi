@@ -6,8 +6,8 @@
   "author": "Antti Järvinen <antti.jarvinen@alupark.fi>",
   "license": "MIT",
   "scripts": {
-    "build": "webpack",
-    "start": "webpack-dev-server"
+    "build": "webpack --config webpack.prod.js",
+    "start": "webpack-dev-server --config webpack.dev.js"
   },
   "devDependencies": {
     "babel-cli": "^6.26.0",
@@ -17,9 +17,11 @@
     "eslint": "^4.18.1",
     "eslint-config-airbnb-base": "^12.1.0",
     "eslint-plugin-import": "^2.9.0",
+    "simplify-js": "^1.2.3",
     "uglifyjs-webpack-plugin": "^1.2.0",
     "webpack": "^3.11.0",
-    "webpack-dev-server": "^2.11.1"
+    "webpack-dev-server": "^2.11.1",
+    "webpack-merge": "^4.1.2"
   },
   "dependencies": {
     "babel-polyfill": "^6.26.0",

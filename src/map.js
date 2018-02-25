@@ -6,8 +6,34 @@ moment.locale('fi');
 const THUMB_UP = String.fromCodePoint('0x1F44D');
 const THUMB_DOWN = String.fromCodePoint('0x1F44E');
 
-//const api = "https://rqrvbffqa8.execute-api.eu-central-1.amazonaws.com/production/skitracks";
-const api = "https://rqrvbffqa8.execute-api.eu-central-1.amazonaws.com/staging/skitracks";
+const icons = {
+  blue: new Leaflet.Icon({
+    iconUrl: 'img/marker-icon-2x-blue.png',
+    shadowUrl: 'img/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+  }),
+  red: new Leaflet.Icon({
+    iconUrl: 'img/marker-icon-2x-red.png',
+    shadowUrl: 'img/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+  }),
+  green: new Leaflet.Icon({
+    iconUrl: 'img/marker-icon-2x-green.png',
+    shadowUrl: 'img/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+  })
+};
+
+const api = "https://rqrvbffqa8.execute-api.eu-central-1.amazonaws.com/production/skitracks";
 
 let map = null;
 let featureLayer = null;
@@ -94,11 +120,28 @@ const initTrack = () => {
 
         const lengthInKms = parseFloat(lengthInMeters / 1000).toFixed(1);
 
+        let conditionText = '';
+        let conditionColor = 'blue';
+
+        if (!track.condition.good && !track.condition.bad) {
+          conditionText = '?';
+          conditionColor = 'blue';
+        } else if (track.condition.good && (!track.condition.bad || track.condition.good > track.condition.bad)) {
+          conditionText = `${THUMB_UP}${moment(track.condition.good).fromNow()}`;
+          conditionColor = 'green';
+        } else if (track.condition.bad && !track.condition.good) {
+          conditionText = `${THUMB_DOWN}${moment(track.condition.bad).fromNow()}`;
+          conditionColor = 'red';
+        } else if (track.condition.bad && track.condition.good) {
+          conditionText = `${THUMB_DOWN}${moment(track.condition.bad).fromNow()} (${THUMB_UP}${moment(track.condition.good).fromNow()})`;
+          conditionColor = 'red';
+        }
+
         const polyline = Leaflet.polyline(track.path, { color: 'blue'} ).addTo(newFeatureLayer);
         polyline.on('mouseover', highlightFeature);
         polyline.on('mouseout', resetHighlight);
 
-        const marker = Leaflet.marker(track.path[0], { title: track.name, color: 'blue' }).addTo(newFeatureLayer);
+        const marker = Leaflet.marker(track.path[0], { title: track.name, icon: icons[conditionColor] }).addTo(newFeatureLayer);
 
         marker.on('mouseover', (e) => highlightFeature({ target: polyline }));
         marker.on('mouseout', (e) => resetHighlight({ target: polyline }));
@@ -108,19 +151,8 @@ const initTrack = () => {
             <b>Pituus</b>: ${lengthInKms > 0 ? lengthInKms + ' km' : '?'}<br>
             <b>Tyyli:</b> ${track.style}<br>
             <b>Vaikeus:</b> ${track.difficulty}<br>
-            <b>Kunto:</b> `;
-
-        if (!track.condition.good && !track.condition.bad) {
-          popupText += '?';
-        } else if (track.condition.good && (!track.condition.bad || track.condition.good > track.condition.bad)) {
-          popupText += `${THUMB_UP}${moment(track.condition.good).fromNow()}`;
-        } else if (track.condition.bad && !track.condition.good) {
-          popupText += `${THUMB_DOWN}${moment(track.condition.bad).fromNow()}`;
-        } else if (track.condition.bad && track.condition.good) {
-          popupText += `${THUMB_DOWN}${moment(track.condition.bad).fromNow()} (${THUMB_UP}${moment(track.condition.good).fromNow()})`;
-        }
-
-        popupText += '</p>'
+            <b>Kunto:</b> ${conditionText}
+          </p>`;
 
         popupText += `<p>
           Missä kunnossa latu on?</br>

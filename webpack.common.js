@@ -1,5 +1,4 @@
 const path = require('path');
-const UglifyJSPlugin = require('uglifyjs-webpack-plugin');
 
 module.exports = {
   entry: ['babel-polyfill', 'isomorphic-fetch', './src/app.js'],
@@ -11,13 +10,5 @@ module.exports = {
     rules: [
       { test: /\.js$/, exclude: /node_modules/, loader: "babel-loader" }
     ]
-  },
-  plugins: [
-    new UglifyJSPlugin({ sourceMap: true })
-  ],
-  devtool: 'inline-source-map',
-  devServer: {
-    contentBase: './docs',
-    publicPath: '/script/',
-  },
+  }
 };
