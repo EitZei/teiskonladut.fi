@@ -37,6 +37,7 @@ const api = "https://rqrvbffqa8.execute-api.eu-central-1.amazonaws.com/productio
 
 let map = null;
 let featureLayer = null;
+let popupOpen = false;
 
 const initMap = () => {
   map = Leaflet.map('map').setView([61.6741457,23.8184606], 11);
@@ -49,12 +50,12 @@ const initMap = () => {
   }).addTo(map);
 };
 
-const highlightFeature = (e) => {
+const highlightFeature = (e, color = 'red') => {
     const layer = e.target;
 
     layer.setStyle({
         weight: 5,
-        color: 'red',
+        color,
         dashArray: '',
         fillOpacity: 0.7
     });
@@ -66,6 +67,10 @@ const highlightFeature = (e) => {
 
 const resetHighlight = (e) => {
     const layer = e.target;
+
+    if (popupOpen === layer) {
+      return;
+    }
 
     layer.setStyle({
         weight: 3,
@@ -138,13 +143,29 @@ const initTrack = () => {
         }
 
         const polyline = Leaflet.polyline(track.path, { color: 'blue'} ).addTo(newFeatureLayer);
-        polyline.on('mouseover', highlightFeature);
+        polyline.on('mouseover', (e) => highlightFeature(e, conditionColor));
         polyline.on('mouseout', resetHighlight);
+        polyline.on('popupopen', (e) => {
+          popupOpen = polyline;
+          highlightFeature(e, conditionColor);
+        });
+        polyline.on('popupclose', (e) => {
+          popupOpen = null;
+          resetHighlight(e);
+        });
 
         const marker = Leaflet.marker(track.path[0], { title: track.name, icon: icons[conditionColor] }).addTo(newFeatureLayer);
 
-        marker.on('mouseover', (e) => highlightFeature({ target: polyline }));
+        marker.on('mouseover', (e) => highlightFeature({ target: polyline }, conditionColor));
         marker.on('mouseout', (e) => resetHighlight({ target: polyline }));
+        marker.on('popupopen', (e) => {
+          popupOpen = polyline;
+          highlightFeature({ target: polyline }, conditionColor);
+        });
+        marker.on('popupclose', (e) => {
+          popupOpen = null;
+          resetHighlight({ target: polyline });
+        });
 
         let popupText = `<b>${track.name}</b>
           <p>
