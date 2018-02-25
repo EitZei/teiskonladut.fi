@@ -157,8 +157,8 @@ const initTrack = () => {
         popupText += `<p>
           Missä kunnossa latu on?</br>
 
-          <button class="condition" onClick="updateCondition('${track.id}', 'good')">${THUMB_UP}</button>
-          <button class="condition" onClick="updateCondition('${track.id}', 'bad')">${THUMB_DOWN}</button>
+          <button class="button condition" onClick="updateCondition('${track.id}', 'good')">${THUMB_UP}</button>
+          <button class="button condition" onClick="updateCondition('${track.id}', 'bad')">${THUMB_DOWN}</button>
         </p>`;
 
         marker.bindPopup(popupText);
